@@ -2,7 +2,6 @@ package coffeezone
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,16 +10,6 @@ import (
 )
 
 const LimitNodes = 300
-
-func getLength(ctx context.Context, sel interface{}) (int, error) {
-	var length int
-	err := chromedp.Evaluate(
-		fmt.Sprintf(`document.querySelectorAll('%v').length`, sel),
-		&length,
-	).Do(ctx)
-
-	return length, err
-}
 
 func Run(url string) {
 	ctx, cancel := chromedp.NewContext(context.Background())
@@ -34,7 +23,7 @@ func Run(url string) {
 		chromedp.WaitNotVisible("div.catalog-button-showMore > div.loading-box-img"),
 		chromedp.WaitVisible("div.catalog-button-showMore > span.button.button-show-more"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			length, err := getLength(ctx, "li.minicard-item")
+			length, err := GetLength(ctx, "li.minicard-item")
 			if err != nil {
 				log.Println(err)
 				return err
@@ -48,7 +37,7 @@ func Run(url string) {
 				).Do(ctx)
 
 				for {
-					len, err := getLength(ctx, "li.minicard-item")
+					len, err := GetLength(ctx, "li.minicard-item")
 					if err != nil {
 						log.Println(err)
 						return err
@@ -73,4 +62,10 @@ func Run(url string) {
 	}
 
 	log.Printf("Total elements: %d\n", len(nodes))
+	for _, v := range nodes {
+		location, exists := GetLocation(v)
+		if exists {
+			log.Println(location)
+		}
+	}
 }

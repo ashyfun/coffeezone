@@ -10,8 +10,8 @@ import (
 
 func main() {
 	var links = []string{
-		"zoon.ru/msk",
-		"spb.zoon.ru",
+		// "zoon.ru/msk",
+		// "spb.zoon.ru",
 		"vladimir.zoon.ru",
 	}
 	var waitGroup sync.WaitGroup = sync.WaitGroup{}
