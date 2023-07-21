@@ -6,14 +6,22 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 )
 
-func GetLocation(n *cdp.Node) ([]float64, bool) {
+type Cafe struct {
+	*cdp.Node
+}
+
+func NewCafe(node *cdp.Node) *Cafe {
+	return &Cafe{node}
+}
+
+func (cafe *Cafe) GetLocation() ([]float64, bool) {
 	var (
 		lonStr string
 		latStr string
 	)
 
-	lonStr, lonExists := n.Attribute("data-lon")
-	latStr, latExists := n.Attribute("data-lat")
+	lonStr, lonExists := cafe.Attribute("data-lon")
+	latStr, latExists := cafe.Attribute("data-lat")
 	if !lonExists || !latExists {
 		return nil, false
 	}

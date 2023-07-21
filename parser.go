@@ -3,69 +3,69 @@ package coffeezone
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 )
 
-const LimitNodes = 300
+const LimitCafesLength = 300
 
 func Run(url string) {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	var nodes []*cdp.Node
-	if err := chromedp.Run(ctx,
+	var cafeNodes []*cdp.Node
+	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
 		chromedp.WaitReady("body"),
 		chromedp.ScrollIntoView("div.catalog-button-showMore", chromedp.NodeVisible),
 		chromedp.WaitNotVisible("div.catalog-button-showMore > div.loading-box-img"),
 		chromedp.WaitVisible("div.catalog-button-showMore > span.button.button-show-more"),
+		chromedp.Sleep(time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			length, err := GetLength(ctx, "li.minicard-item")
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-
 			for {
-				log.Printf("Nodes length: %d\n", length)
+				cafesLen, err := GetLength(ctx, "li.minicard-item")
+				if err != nil {
+					return err
+				}
+
+				log.Printf("%d cafes\n", cafesLen)
+				if cafesLen >= LimitCafesLength {
+					break
+				}
+
 				chromedp.Click(
 					"div.catalog-button-showMore > span.button.button-show-more",
 					chromedp.NodeVisible,
 				).Do(ctx)
+				chromedp.Sleep(time.Second).Do(ctx)
+			}
 
-				for {
-					len, err := GetLength(ctx, "li.minicard-item")
-					if err != nil {
-						log.Println(err)
-						return err
-					}
-
-					if len > length {
-						length = len
-						if len == LimitNodes {
-							return nil
+			return nil
+		}),
+		chromedp.Nodes("li.minicard-item", &cafeNodes),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			var titleNodes []*cdp.Node
+			for _, v := range cafeNodes {
+				err := chromedp.Nodes(v.FullXPath()+`//a[contains(@class, "title-link")]`, &titleNodes).Do(ctx)
+				if err != nil {
+					return nil
+				} else {
+					for _, v := range titleNodes {
+						if v.ChildNodeCount == 1 {
+							log.Println(strings.TrimSpace(v.Children[0].NodeValue))
 						}
-
-						break
 					}
-
-					time.Sleep(time.Second)
 				}
 			}
-		}),
-		chromedp.Nodes("li.minicard-item", &nodes),
-	); err != nil {
-		log.Fatalf("Failed to open site: %v\n", err)
-	}
 
-	log.Printf("Total elements: %d\n", len(nodes))
-	for _, v := range nodes {
-		location, exists := GetLocation(v)
-		if exists {
-			log.Println(location)
-		}
+			return nil
+		}),
+	)
+
+	if err != nil {
+		log.Fatalf("Failed to open site: %v\n", err)
 	}
 }
