@@ -3,7 +3,6 @@ package coffeezone
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -16,7 +15,6 @@ func Run(url string) {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	var cafeNodes []*cdp.Node
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
 		chromedp.WaitReady("body"),
@@ -43,21 +41,12 @@ func Run(url string) {
 				chromedp.Sleep(time.Second).Do(ctx)
 			}
 
-			return nil
-		}),
-		chromedp.Nodes("li.minicard-item", &cafeNodes),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var titleNodes []*cdp.Node
+			var cafeNodes []*cdp.Node
+			chromedp.Nodes("li.minicard-item", &cafeNodes).Do(ctx)
 			for _, v := range cafeNodes {
-				err := chromedp.Nodes(v.FullXPath()+`//a[contains(@class, "title-link")]`, &titleNodes).Do(ctx)
-				if err != nil {
-					return nil
-				} else {
-					for _, v := range titleNodes {
-						if v.ChildNodeCount == 1 {
-							log.Println(strings.TrimSpace(v.Children[0].NodeValue))
-						}
-					}
+				cafe := NewCafe(ctx, v)
+				if cafe != nil {
+					log.Println(cafe)
 				}
 			}
 
