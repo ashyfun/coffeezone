@@ -11,18 +11,24 @@ import (
 )
 
 type Parser struct {
-	url string
+	url    string
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func NewParser(url string) *Parser {
-	return &Parser{fmt.Sprintf("https://%s/restaurants/", url)}
+	ctx, cancel := chromedp.NewContext(context.Background())
+	return &Parser{
+		fmt.Sprintf("https://%s/restaurants/", url),
+		ctx,
+		cancel,
+	}
 }
 
 func (p *Parser) Run() {
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
+	defer p.cancel()
 
-	err := chromedp.Run(ctx,
+	err := chromedp.Run(p.ctx,
 		chromedp.Navigate(p.url),
 		chromedp.WaitReady("body"),
 		chromedp.ScrollIntoView("div.catalog-button-showMore", chromedp.NodeVisible),
