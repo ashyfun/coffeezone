@@ -14,14 +14,15 @@ type Parser struct {
 	url    string
 	ctx    context.Context
 	cancel context.CancelFunc
+	Cafes  []*Cafe
 }
 
 func NewParser(url string) *Parser {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	return &Parser{
-		fmt.Sprintf("https://%s/restaurants/", url),
-		ctx,
-		cancel,
+		url:    fmt.Sprintf("https://%s/restaurants/", url),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -46,7 +47,7 @@ func (p *Parser) Run() {
 			for _, v := range cafeNodes {
 				cafe := NewCafe(ctx, v)
 				if cafe != nil {
-					log.Println(cafe)
+					p.Cafes = append(p.Cafes, cafe)
 				}
 			}
 

@@ -27,17 +27,25 @@ func main() {
 		flag.Usage()
 	}
 
-	var links []string = flag.Args()
-	var waitGroup sync.WaitGroup = sync.WaitGroup{}
+	var (
+		links     []string       = flag.Args()
+		waitGroup sync.WaitGroup = sync.WaitGroup{}
+	)
 	for _, v := range links {
 		v := v
 
 		waitGroup.Add(1)
 		go func() {
 			defer waitGroup.Done()
+
 			parser := coffeezone.NewParser(v)
+
 			log.Printf("Start parse %s\n", v)
 			parser.Run()
+
+			for _, v := range parser.Cafes {
+				log.Println(v)
+			}
 		}()
 	}
 
