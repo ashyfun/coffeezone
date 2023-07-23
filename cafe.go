@@ -39,25 +39,59 @@ func LoadMoreCafes(ctx context.Context) error {
 type Cafe struct {
 	ID       string
 	Title    string
+	Topics   []string
 	Location []float64
 }
 
 func (c *Cafe) String() string {
-	return fmt.Sprintf("%s (%s %v)", c.Title, c.ID, c.Location)
+	str := fmt.Sprintf("%s (%s %v)", c.Title, c.ID, c.Location)
+	for i, v := range c.Topics {
+		if i > 0 {
+			str += " | "
+		} else {
+			str += " - "
+		}
+
+		str += v
+	}
+
+	return str
 }
 
 func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
 	var titleNodes []*cdp.Node
 	err := chromedp.Nodes(cafeNode.FullXPath()+`//a[contains(@class, "title-link")]`, &titleNodes).Do(ctx)
-	if err != nil || len(titleNodes) > 1 || titleNodes[0].ChildNodeCount > 1 {
+	if err != nil || len(titleNodes) != 1 || titleNodes[0].ChildNodeCount != 1 {
 		return nil
 	}
 
-	cafeID, _ := cafeNode.Attribute("data-id")
-	cafeTitle := strings.TrimSpace(titleNodes[0].Children[0].NodeValue)
-	cafeLocation := getLocation(cafeNode)
+	newCafe := &Cafe{}
 
-	return &Cafe{ID: cafeID, Title: cafeTitle, Location: cafeLocation}
+	cafeID, _ := cafeNode.Attribute("data-id")
+	newCafe.ID = cafeID
+	newCafe.Title = strings.TrimSpace(titleNodes[0].Children[0].NodeValue)
+	newCafe.Location = getLocation(cafeNode)
+
+	topicsLen, err := GetLength(ctx, fmt.Sprintf(`li.minicard-item[data-id="%s"] div.minicard-item__features`, cafeID))
+	if err == nil && topicsLen > 0 {
+		var topicNodes []*cdp.Node
+		chromedp.Nodes(
+			cafeNode.FullXPath()+`
+			//div[contains(@class, "minicard-item__features")]/*[not(contains(@class, "bullet"))]
+			`,
+			&topicNodes,
+		).Do(ctx)
+		for _, v := range topicNodes {
+			if v.ChildNodeCount == 1 {
+				newCafe.Topics = append(
+					newCafe.Topics,
+					strings.TrimSpace(v.Children[0].NodeValue),
+				)
+			}
+		}
+	}
+
+	return newCafe
 }
 
 func getLocation(cafe *cdp.Node) []float64 {
