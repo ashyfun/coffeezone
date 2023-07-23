@@ -35,9 +35,9 @@ func main() {
 		waitGroup.Add(1)
 		go func() {
 			defer waitGroup.Done()
-			var url string = fmt.Sprintf("https://%s/restaurants/", v)
-			log.Printf("Start parse %s\n", url)
-			coffeezone.Run(url)
+			parser := coffeezone.NewParser(v)
+			log.Printf("Start parse %s\n", v)
+			parser.Run()
 		}()
 	}
 

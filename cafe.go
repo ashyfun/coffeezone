@@ -3,12 +3,38 @@ package coffeezone
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 )
+
+const LimitCafesLength = 300
+
+func LoadMoreCafes(ctx context.Context) error {
+	for {
+		cafesLen, err := GetLength(ctx, "li.minicard-item")
+		if err != nil {
+			return err
+		}
+
+		log.Printf("%d cafes\n", cafesLen)
+		if cafesLen >= LimitCafesLength {
+			break
+		}
+
+		chromedp.Click(
+			"div.catalog-button-showMore > span.button.button-show-more",
+			chromedp.NodeVisible,
+		).Do(ctx)
+		chromedp.Sleep(time.Second).Do(ctx)
+	}
+
+	return nil
+}
 
 type Cafe struct {
 	ID       string

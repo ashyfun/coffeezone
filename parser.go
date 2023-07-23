@@ -2,6 +2,7 @@ package coffeezone
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -9,36 +10,29 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-const LimitCafesLength = 300
+type Parser struct {
+	url string
+}
 
-func Run(url string) {
+func NewParser(url string) *Parser {
+	return &Parser{fmt.Sprintf("https://%s/restaurants/", url)}
+}
+
+func (p *Parser) Run() {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
 	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
+		chromedp.Navigate(p.url),
 		chromedp.WaitReady("body"),
 		chromedp.ScrollIntoView("div.catalog-button-showMore", chromedp.NodeVisible),
 		chromedp.WaitNotVisible("div.catalog-button-showMore > div.loading-box-img"),
 		chromedp.WaitVisible("div.catalog-button-showMore > span.button.button-show-more"),
 		chromedp.Sleep(time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			for {
-				cafesLen, err := GetLength(ctx, "li.minicard-item")
-				if err != nil {
-					return err
-				}
-
-				log.Printf("%d cafes\n", cafesLen)
-				if cafesLen >= LimitCafesLength {
-					break
-				}
-
-				chromedp.Click(
-					"div.catalog-button-showMore > span.button.button-show-more",
-					chromedp.NodeVisible,
-				).Do(ctx)
-				chromedp.Sleep(time.Second).Do(ctx)
+			err := LoadMoreCafes(ctx)
+			if err != nil {
+				return err
 			}
 
 			var cafeNodes []*cdp.Node
