@@ -36,26 +36,21 @@ func LoadMoreCafes(ctx context.Context) error {
 	return nil
 }
 
+type LocationType struct {
+	Address   string
+	Longitude float64
+	Latitude  float64
+}
+
 type Cafe struct {
 	ID       string
 	Title    string
 	Topics   []string
-	Location []float64
+	Location *LocationType
 }
 
 func (c *Cafe) String() string {
-	str := fmt.Sprintf("%s (%s %v)", c.Title, c.ID, c.Location)
-	for i, v := range c.Topics {
-		if i > 0 {
-			str += " | "
-		} else {
-			str += " - "
-		}
-
-		str += v
-	}
-
-	return str
+	return fmt.Sprintf("%s %s", c.ID, c.Title)
 }
 
 func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
@@ -70,7 +65,7 @@ func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
 	cafeID, _ := cafeNode.Attribute("data-id")
 	newCafe.ID = cafeID
 	newCafe.Title = strings.TrimSpace(titleNodes[0].Children[0].NodeValue)
-	newCafe.Location = getLocation(cafeNode)
+	newCafe.Location = getLocation(ctx, cafeNode)
 
 	topicsLen, err := GetLength(ctx, fmt.Sprintf(`li.minicard-item[data-id="%s"] div.minicard-item__features`, cafeID))
 	if err == nil && topicsLen > 0 {
@@ -94,11 +89,20 @@ func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
 	return newCafe
 }
 
-func getLocation(cafe *cdp.Node) []float64 {
+func getLocation(ctx context.Context, cafe *cdp.Node) *LocationType {
 	var (
-		lonStr string
-		latStr string
+		addrStr string
+		lonStr  string
+		latStr  string
 	)
+
+	var addrNodes []*cdp.Node
+	err := chromedp.Nodes(cafe.FullXPath()+`//address/span[contains(@class, "address")]`, &addrNodes).Do(ctx)
+	if err != nil || len(addrNodes) != 1 || addrNodes[0].ChildNodeCount != 1 {
+		return nil
+	}
+
+	addrStr = strings.TrimSpace(addrNodes[0].Children[0].NodeValue)
 
 	lonStr, lonExists := cafe.Attribute("data-lon")
 	latStr, latExists := cafe.Attribute("data-lat")
@@ -112,8 +116,5 @@ func getLocation(cafe *cdp.Node) []float64 {
 		return nil
 	}
 
-	var location []float64
-	location = append(location, lon, lat)
-
-	return location
+	return &LocationType{addrStr, lon, lat}
 }
