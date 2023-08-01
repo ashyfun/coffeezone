@@ -5,20 +5,24 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/ashyfun/coffeezone"
 	"github.com/jackc/pgx/v5"
 )
 
-const UsageOf = `
-Usage of %s: <domain>...
+const UsageHelp = `
+Usage %s: OPTIONS <domain>...
 
-e.g. zoon.ru/msk spb.zoon.ru
+Options:
+ --database Writing data to database PostgreSQL (postgresql://url)
+
+Domain examples: zoon.ru/msk spb.zoon.ru
 `
 
 func usage() {
-	fmt.Fprintf(os.Stderr, UsageOf, os.Args[0])
+	fmt.Fprintf(os.Stderr, strings.TrimLeft(UsageHelp, "\n"), os.Args[0])
 }
 
 var connStr string
