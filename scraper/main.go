@@ -56,6 +56,7 @@ func main() {
 			parser.Run()
 
 			for _, v := range parser.Cafes {
+				sql, args := v.CreateOrUpdate()
 				coffeezone.QueryRowExec(func(r pgx.Row) {
 					var code string
 					if err := r.Scan(&code); err != nil {
@@ -64,12 +65,7 @@ func main() {
 					}
 
 					log.Printf("Entry %s added/updated", code)
-				}, `
-				insert into cz_cafes (code, title)
-				values ($1, $2)
-				on conflict (code) do update set title = $2, updated_at = now()
-				returning code
-				`, v.ID, v.Title)
+				}, sql, args...)
 			}
 		}()
 	}

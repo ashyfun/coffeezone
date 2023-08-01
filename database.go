@@ -68,3 +68,7 @@ func CloseDatabasePool() {
 	database.ctxCancel()
 	database.pool.Close()
 }
+
+type Sql interface {
+	CreateOrUpdate() (string, []any)
+}

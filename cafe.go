@@ -49,6 +49,16 @@ type Cafe struct {
 	Location *LocationType
 }
 
+func (c *Cafe) CreateOrUpdate() (string, []any) {
+	values := []any{c.ID, c.Title}
+	return `
+	insert into cz_cafes (code, title)
+	values ($1, $2)
+	on conflict (code) do update set title = $2, updated_at = now()
+	returning code
+	`, values
+}
+
 func (c *Cafe) String() string {
 	return fmt.Sprintf("%s %s", c.ID, c.Title)
 }
