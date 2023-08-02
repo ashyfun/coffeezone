@@ -31,7 +31,7 @@ func main() {
 	flag.Usage = usage
 	flag.StringVar(&connStr, "database", "", "")
 	flag.Parse()
-	if flag.NArg() == 0 || connStr == "" {
+	if flag.NArg() == 0 {
 		flag.Usage()
 		return
 	}
@@ -56,6 +56,11 @@ func main() {
 			parser.Run()
 
 			for _, v := range parser.Cafes {
+				if !coffeezone.DatabasePoolAvailable() {
+					log.Println(v)
+					continue
+				}
+
 				sql, args := v.CreateOrUpdate()
 				coffeezone.QueryRowExec(func(r pgx.Row) {
 					var code string

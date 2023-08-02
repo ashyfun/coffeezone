@@ -24,9 +24,13 @@ func SetConn(str string) {
 	database.connStr = str
 }
 
+func DatabasePoolAvailable() bool {
+	return database.err == nil && database.pool != nil
+}
+
 func NewDatabasePool() (*pgxpool.Pool, error) {
 	database.openOnce.Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		database.ctx = ctx
 		database.ctxCancel = cancel
 
@@ -65,8 +69,10 @@ func QueryRowExec(fn QueryRowExecFunc, sql string, args ...any) {
 }
 
 func CloseDatabasePool() {
-	database.ctxCancel()
-	database.pool.Close()
+	if DatabasePoolAvailable() {
+		database.ctxCancel()
+		database.pool.Close()
+	}
 }
 
 type Sql interface {
