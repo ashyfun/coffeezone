@@ -56,6 +56,6 @@ func (p *Parser) Run() {
 	)
 
 	if err != nil {
-		log.Fatalf("Failed to open site: %v\n", err)
+		log.Fatalf("Parse error: %v", err)
 	}
 }
