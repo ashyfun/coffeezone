@@ -10,6 +10,7 @@ import (
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
+	"github.com/jackc/pgx/v5"
 )
 
 const LimitCafesLength = 300
@@ -42,6 +43,16 @@ type LocationType struct {
 	Latitude  float64
 }
 
+func (c *LocationType) CreateOrUpdate() (string, []any) {
+	values := []any{c.Address, c.Longitude, c.Latitude}
+	return `
+	insert into cz_cafe_locations (address_name, longitude, latitude)
+	values ($1, $2, $3)
+	on conflict (longitude, latitude) do update set address_name = $1, longitude = $2, latitude = $3
+	returning id
+	`, values
+}
+
 type Cafe struct {
 	ID       string
 	Title    string
@@ -50,11 +61,24 @@ type Cafe struct {
 }
 
 func (c *Cafe) CreateOrUpdate() (string, []any) {
-	values := []any{c.ID, c.Title}
+	var locationID int32
+	if c.Location != nil {
+		sql, args := c.Location.CreateOrUpdate()
+		QueryRowExec(func(r pgx.Row) {
+			if err := r.Scan(&locationID); err != nil {
+				log.Printf("Failed to create or update location: %v", err)
+				locationID = 0
+				return
+			}
+
+			log.Printf("%s: Location ID: %d", c.ID, locationID)
+		}, sql, args...)
+	}
+
+	values := []any{c.ID, c.Title, locationID}
 	return `
-	insert into cz_cafes (code, title)
-	values ($1, $2)
-	on conflict (code) do update set title = $2, updated_at = now()
+	insert into cz_cafes (code, title, location_id)
+	values ($1, $2, $3) on conflict (code) do update set title = $2, location_id = $3, updated_at = now()
 	returning code
 	`, values
 }
