@@ -94,4 +94,5 @@ func main() {
 	}()
 
 	waitGroup.Wait()
+	close(stopCh)
 }

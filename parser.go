@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 )
+
+const Concurrency = 6
 
 type Parser struct {
 	url    string
@@ -42,14 +45,33 @@ func (p *Parser) Run() {
 				return err
 			}
 
-			var cafeNodes []*cdp.Node
+			var (
+				waitGroup sync.WaitGroup
+				cafeNodes []*cdp.Node
+			)
 			chromedp.Nodes("li.minicard-item", &cafeNodes).Do(ctx)
-			for _, v := range cafeNodes {
-				cafe := NewCafe(ctx, v)
-				if cafe != nil {
-					p.Cafes = append(p.Cafes, cafe)
-				}
+
+			cafeCh := make(chan *cdp.Node)
+			for i := 0; i < Concurrency; i++ {
+				waitGroup.Add(1)
+				go func() {
+					defer waitGroup.Done()
+
+					for v := range cafeCh {
+						cafe := NewCafe(ctx, v)
+						if cafe != nil {
+							p.Cafes = append(p.Cafes, cafe)
+						}
+					}
+				}()
 			}
+
+			for _, v := range cafeNodes {
+				cafeCh <- v
+			}
+			close(cafeCh)
+
+			waitGroup.Wait()
 
 			return nil
 		}),
