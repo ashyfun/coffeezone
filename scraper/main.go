@@ -52,6 +52,8 @@ func start(domain string) {
 			log.Printf("Entry %s added/updated", code)
 		}, sql, args...)
 	}
+
+	log.Println("Done")
 }
 
 var (
@@ -70,6 +72,7 @@ func main() {
 	}
 
 	coffeezone.SetConn(connStr)
+	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 
 	var (

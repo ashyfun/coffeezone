@@ -3,19 +3,17 @@ package coffeezone
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Database struct {
-	openOnce  sync.Once
-	connStr   string
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	pool      *pgxpool.Pool
-	err       error
+	openOnce sync.Once
+	connStr  string
+	ctx      context.Context
+	pool     *pgxpool.Pool
+	err      error
 }
 
 var database *Database = &Database{}
@@ -30,13 +28,8 @@ func DatabasePoolAvailable() bool {
 
 func NewDatabasePool() (*pgxpool.Pool, error) {
 	database.openOnce.Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		database.ctx = ctx
-		database.ctxCancel = cancel
-
-		pool, err := pgxpool.New(ctx, database.connStr)
-		database.pool = pool
-		database.err = err
+		database.ctx = context.Background()
+		database.pool, database.err = pgxpool.New(database.ctx, database.connStr)
 	})
 
 	if database.err != nil {
@@ -70,7 +63,6 @@ func QueryRowExec(fn QueryRowExecFunc, sql string, args ...any) {
 
 func CloseDatabasePool() {
 	if DatabasePoolAvailable() {
-		database.ctxCancel()
 		database.pool.Close()
 	}
 }
