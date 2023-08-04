@@ -20,6 +20,7 @@ Usage %s: OPTIONS <domain>
 
 Options:
  --database Writing data to database PostgreSQL (postgresql://url)
+ --pause    Pause after each scraper in seconds (default 3600)
 
 Domain examples: zoon.ru/msk spb.zoon.ru
 `
@@ -53,11 +54,15 @@ func start(domain string) {
 	}
 }
 
-var connStr string
+var (
+	pause   int
+	connStr string
+)
 
 func main() {
 	flag.Usage = usage
 	flag.StringVar(&connStr, "database", "", "")
+	flag.IntVar(&pause, "pause", 3600, "")
 	flag.Parse()
 	if flag.NArg() == 0 {
 		flag.Usage()
@@ -83,7 +88,7 @@ func main() {
 			select {
 			case <-stopCh:
 				return
-			case <-time.After(20 * time.Second):
+			case <-time.After(time.Duration(pause) * time.Second):
 			}
 		}
 	}()
