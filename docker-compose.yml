@@ -8,5 +8,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-coffeezone_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-coffeezone_user}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ${PGDATA_DIR:-pgdata}:/var/lib/postgresql/data
     restart: always
+
+volumes:
+  pgdata:
+    driver: local
