@@ -60,22 +60,69 @@ type Cafe struct {
 	Location *LocationType
 }
 
-func (c *Cafe) CreateOrUpdate() (string, []any) {
+func createOrUpdateLocation(l *LocationType) int32 {
 	var locationID int32
-	if c.Location != nil {
-		sql, args := c.Location.CreateOrUpdate()
+	if l != nil {
+		sql, args := l.CreateOrUpdate()
 		QueryRowExec(func(r pgx.Row) {
 			if err := r.Scan(&locationID); err != nil {
 				log.Printf("Failed to create or update location: %v", err)
 				locationID = 0
 				return
 			}
-
-			log.Printf("%s: Location ID: %d", c.ID, locationID)
 		}, sql, args...)
 	}
 
-	values := []any{c.ID, c.Title, locationID}
+	return locationID
+}
+
+func (c *Cafe) HandleTopics() {
+	for _, v := range c.Topics {
+		var topicID int32
+		QueryRowExec(func(r pgx.Row) {
+			if err := r.Scan(&topicID); err != nil {
+				log.Printf("Feature \"%s\" not found", v)
+				QueryRowExec(func(r pgx.Row) {
+					if err := r.Scan(&topicID); err != nil {
+						log.Printf("Failed to create or update topic: %v", err)
+						topicID = 0
+						return
+					}
+				}, `
+				insert into cz_topics (feature)
+				values ($1)
+				on conflict (feature) do update set feature = $1
+				returning id
+				`, v)
+			}
+		}, `
+		select id from cz_topics
+		where feature like $1
+		`, v)
+
+		if topicID > 0 {
+			QueryRowExec(func(r pgx.Row) {
+				var res int32
+				if err := r.Scan(&res); err != nil {
+					log.Println(err)
+				}
+			}, `
+			insert into cz_cafes_topics (cafe_code, topic_id)
+			values ($1, $2)
+			on conflict (cafe_code, topic_id) do update set topic_id = $2
+			returning topic_id
+			`, c.ID, topicID)
+		}
+	}
+}
+
+func (c *Cafe) CreateOrUpdate() (string, []any) {
+	location := createOrUpdateLocation(c.Location)
+	if location > 0 {
+		log.Printf("%s: Location ID: %d", c.ID, location)
+	}
+
+	values := []any{c.ID, c.Title, location}
 	return `
 	insert into cz_cafes (code, title, location_id)
 	values ($1, $2, $3) on conflict (code) do update set title = $2, location_id = $3, updated_at = now()

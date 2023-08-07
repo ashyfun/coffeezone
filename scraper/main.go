@@ -49,6 +49,8 @@ func start(domain string) {
 				return
 			}
 
+			v.HandleTopics()
+
 			log.Printf("Entry %s added/updated", code)
 		}, sql, args...)
 	}

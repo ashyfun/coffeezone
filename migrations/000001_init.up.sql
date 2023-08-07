@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS cz_topics (
 );
 
 CREATE TABLE IF NOT EXISTS cz_cafes_topics (
-    cafe_code char(24) REFERENCES cz_cafes (code),
-    topic_id integer REFERENCES cz_topics (id),
+    cafe_code char(24) REFERENCES cz_cafes (code) ON DELETE CASCADE,
+    topic_id integer REFERENCES cz_topics (id) ON DELETE SET NULL,
     PRIMARY KEY (cafe_code, topic_id)
 );
