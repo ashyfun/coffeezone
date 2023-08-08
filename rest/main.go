@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	"github.com/ashyfun/coffeezone"
-	"github.com/gin-gonic/gin"
 )
 
 var connStr string
@@ -17,7 +16,11 @@ func main() {
 	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 
-	r := gin.Default()
-	r.GET("/cafes", coffeezone.CafesHandler)
-	r.Run()
+	router := NewRouter()
+	api1 := router.WrapGroup("/api/v1")
+	{
+		api1.View("GET", "/cafes", CafesHandler)
+	}
+
+	router.Run()
 }
