@@ -11,18 +11,21 @@ type Context struct {
 	*gin.Context
 }
 
-func (c *Context) Response(res interface{}, err error) {
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
+func (c *Context) Response(res any, pagination *Pagination) {
+	obj := gin.H{
 		"success": true,
 		"data":    res,
+	}
+	if pagination != nil && pagination.Total > 0 {
+		obj["pagination"] = pagination
+	}
+	c.JSON(http.StatusOK, obj)
+}
+
+func (c *Context) BadRequest(err error) {
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+		"success": false,
+		"error":   err.Error(),
 	})
 }
 
