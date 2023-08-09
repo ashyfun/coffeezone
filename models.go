@@ -10,4 +10,5 @@ type CafeModel struct {
 	Code     string        `json:"code"`
 	Title    string        `json:"title"`
 	Location LocationModel `json:"location,omitempty"`
+	Topics   *string       `json:"topics,omitempty"`
 }

@@ -28,6 +28,7 @@ func CafesHandler(c *Context) {
 				&cafeModel.Location.Address,
 				&cafeModel.Location.Longitude,
 				&cafeModel.Location.Latitude,
+				&cafeModel.Topics,
 			)
 			if _err != nil {
 				log.Printf("Failed to get cafe values: %v", err)
@@ -38,9 +39,17 @@ func CafesHandler(c *Context) {
 			cafes = append(cafes, cafeModel)
 		}
 	}, `
-	select code, title, address_name, longitude, latitude from cz_cafes
-	left join cz_cafe_locations
-	on location_id = id
+	select code,
+		title,
+		address_name,
+		longitude,
+		latitude,
+		string_agg(tpcs.feature, ', ' order by tpcs.id) as topics
+	from cz_cafes
+	left join cz_cafe_locations as cafe_lcts on location_id = cafe_lcts.id
+	left join cz_cafes_topics as cafe_tpcs on code = cafe_tpcs.cafe_code
+	left join cz_topics as tpcs on cafe_tpcs.topic_id = tpcs.id
+	group by code, address_name, longitude, latitude
 	order by code asc
 	`)
 
