@@ -68,7 +68,7 @@ func CafesHandler(c *Context) {
 	order by code asc
 	limit $1
 	offset $2
-	`, pag.Limit, pag.Page*pag.Limit)
+	`, pag.Limit, (pag.Page-1)*pag.Limit)
 
 	c.Response(cafes, pag)
 }
