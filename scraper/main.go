@@ -61,16 +61,22 @@ func start(domain string) {
 var (
 	pause   int
 	connStr string
+	logFile string
 )
 
 func main() {
 	flag.Usage = usage
 	flag.StringVar(&connStr, "database", "", "")
+	flag.StringVar(&logFile, "logfile", "", "")
 	flag.IntVar(&pause, "pause", 3600, "")
 	flag.Parse()
 	if flag.NArg() == 0 {
 		flag.Usage()
 		return
+	}
+
+	if _, err := coffeezone.SetLogFileOutput(logFile); err != nil {
+		log.Fatalf(`SetLogFileOutput("%s"): %v`, logFile, err)
 	}
 
 	coffeezone.SetConn(connStr)
