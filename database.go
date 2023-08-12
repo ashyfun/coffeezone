@@ -18,8 +18,20 @@ type Database struct {
 
 var database *Database = &Database{}
 
-func SetConn(str string) {
+func checkConnection() error {
+	bg := context.Background()
+	conn, err := pgx.Connect(bg, database.connStr)
+	if err != nil {
+		return err
+	}
+
+	conn.Close(bg)
+	return nil
+}
+
+func SetAndCheckConn(str string) error {
 	database.connStr = str
+	return checkConnection()
 }
 
 func DatabasePoolAvailable() bool {

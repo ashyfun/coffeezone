@@ -19,7 +19,11 @@ func main() {
 		gin.DefaultWriter = f
 	}
 
-	coffeezone.SetConn(flags.ConnStr)
+	res := coffeezone.SetAndCheckConn(flags.ConnStr)
+	if res != nil {
+		log.Fatalf(`SetAndCheckConn("%s"): %v`, flags.ConnStr, res)
+	}
+
 	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 

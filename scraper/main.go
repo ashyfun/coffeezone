@@ -68,7 +68,11 @@ func main() {
 		log.Fatalf(`SetLogFileOutput("%s"): %v`, flags.LogFile, err)
 	}
 
-	coffeezone.SetConn(flags.ConnStr)
+	res := coffeezone.SetAndCheckConn(flags.ConnStr)
+	if res != nil {
+		log.Fatalf(`SetAndCheckConn("%s"): %v`, flags.ConnStr, res)
+	}
+
 	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 
