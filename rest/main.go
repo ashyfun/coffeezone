@@ -1,33 +1,25 @@
 package main
 
 import (
-	"flag"
 	"log"
 
 	"github.com/ashyfun/coffeezone"
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	connStr string
-	logFile string
-)
-
 func main() {
-	flag.StringVar(&connStr, "database", "", "")
-	flag.StringVar(&logFile, "logfile", "", "")
-	flag.Parse()
+	flags := coffeezone.ParseFlags(nil)
 
-	f, err := coffeezone.SetLogFileOutput(logFile)
+	f, err := coffeezone.SetLogFileOutput(flags.LogFile)
 	if err != nil {
-		log.Fatalf(`SetLogFileOutput("%s"): %v`, logFile, err)
+		log.Fatalf(`SetLogFileOutput("%s"): %v`, flags.LogFile, err)
 	}
 
 	if f != nil {
 		gin.DefaultWriter = f
 	}
 
-	coffeezone.SetConn(connStr)
+	coffeezone.SetConn(flags.ConnStr)
 	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 

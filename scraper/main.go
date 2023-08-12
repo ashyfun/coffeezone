@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -24,10 +22,6 @@ Options:
 
 Domain examples: zoon.ru/msk spb.zoon.ru
 `
-
-func usage() {
-	fmt.Fprintf(os.Stderr, strings.TrimLeft(UsageHelp, "\n"), os.Args[0])
-}
 
 func start(domain string) {
 	parser := coffeezone.NewParser(domain)
@@ -58,28 +52,23 @@ func start(domain string) {
 	log.Println("Done")
 }
 
-var (
-	pause   int
-	connStr string
-	logFile string
-)
+var pause int
 
 func main() {
-	flag.Usage = usage
-	flag.StringVar(&connStr, "database", "", "")
-	flag.StringVar(&logFile, "logfile", "", "")
-	flag.IntVar(&pause, "pause", 3600, "")
-	flag.Parse()
+	coffeezone.SetUsage(UsageHelp)
+	flags := coffeezone.ParseFlags(func() {
+		flag.IntVar(&pause, "pause", 3600, "")
+	})
 	if flag.NArg() == 0 {
 		flag.Usage()
 		return
 	}
 
-	if _, err := coffeezone.SetLogFileOutput(logFile); err != nil {
-		log.Fatalf(`SetLogFileOutput("%s"): %v`, logFile, err)
+	if _, err := coffeezone.SetLogFileOutput(flags.LogFile); err != nil {
+		log.Fatalf(`SetLogFileOutput("%s"): %v`, flags.LogFile, err)
 	}
 
-	coffeezone.SetConn(connStr)
+	coffeezone.SetConn(flags.ConnStr)
 	coffeezone.NewDatabasePool()
 	defer coffeezone.CloseDatabasePool()
 
