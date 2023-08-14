@@ -42,6 +42,7 @@ type Cafe struct {
 	Title    string
 	Topics   []string
 	Location *LocationType
+	Link     string
 }
 
 type LocationType struct {
@@ -51,7 +52,7 @@ type LocationType struct {
 }
 
 func (c *Cafe) String() string {
-	return fmt.Sprintf("%s %s", c.ID, c.Title)
+	return fmt.Sprintf("%s (%s)[%s]", c.ID, c.Title, c.Link)
 }
 
 func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
@@ -67,6 +68,7 @@ func NewCafe(ctx context.Context, cafeNode *cdp.Node) *Cafe {
 	newCafe.ID = cafeID
 	newCafe.Title = strings.TrimSpace(titleNodes[0].Children[0].NodeValue)
 	newCafe.Location = getLocation(ctx, cafeNode)
+	newCafe.Link = titleNodes[0].AttributeValue("href")
 
 	topicsLen, err := GetLength(ctx, fmt.Sprintf(`li.minicard-item[data-id="%s"] div.minicard-item__features`, cafeID))
 	if err == nil && topicsLen > 0 {

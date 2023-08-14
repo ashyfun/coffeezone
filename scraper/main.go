@@ -29,11 +29,7 @@ func start(domain string) {
 	parser.Run()
 
 	for _, v := range parser.Cafes {
-		if !coffeezone.DatabasePoolAvailable() {
-			log.Println(v)
-			continue
-		}
-
+		log.Println(v)
 		v.Handle()
 	}
 
