@@ -24,14 +24,14 @@ services:
      - PG_CONN=postgresql://${POSTGRES_USER:-coffeezone_user}:${POSTGRES_PASSWORD:-coffeezone_user}@db/${POSTGRES_DB:-coffeezone_db}?sslmode=disable
     command: >
       sh -c "migrate -path ./migrations -database $$PG_CONN up &&
-             scraper --database $$PG_CONN vladimir.zoon.ru"
+             scraper --database $$PG_CONN $DOMAIN"
     restart: always
     networks:
       - bridge
   rest:
     <<: *scraper
     command: >
-      sh -c "rest --database $$PG_CONN"
+      sh -c "GIN_MODE=$GIN_MODE rest --database $$PG_CONN"
     ports:
       - "${GIN_PORT:-8080}:8080"
 
