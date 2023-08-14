@@ -37,22 +37,6 @@ func LoadMoreCafes(ctx context.Context) error {
 	return nil
 }
 
-type LocationType struct {
-	Address   string
-	Longitude float64
-	Latitude  float64
-}
-
-func (c *LocationType) CreateOrUpdate() (string, []any) {
-	values := []any{c.Address, c.Longitude, c.Latitude}
-	return `
-	insert into cz_cafe_locations (address_name, longitude, latitude)
-	values ($1, $2, $3)
-	on conflict (longitude, latitude) do update set address_name = $1, longitude = $2, latitude = $3
-	returning id
-	`, values
-}
-
 type Cafe struct {
 	ID       string
 	Title    string
@@ -60,74 +44,10 @@ type Cafe struct {
 	Location *LocationType
 }
 
-func createOrUpdateLocation(l *LocationType) int32 {
-	var locationID int32
-	if l != nil {
-		sql, args := l.CreateOrUpdate()
-		QueryRowExec(func(r pgx.Row) {
-			if err := r.Scan(&locationID); err != nil {
-				log.Printf("Failed to create or update location: %v", err)
-				locationID = 0
-				return
-			}
-		}, sql, args...)
-	}
-
-	return locationID
-}
-
-func (c *Cafe) HandleTopics() {
-	for _, v := range c.Topics {
-		var topicID int32
-		QueryRowExec(func(r pgx.Row) {
-			if err := r.Scan(&topicID); err != nil {
-				log.Printf("Feature \"%s\" not found", v)
-				QueryRowExec(func(r pgx.Row) {
-					if err := r.Scan(&topicID); err != nil {
-						log.Printf("Failed to create or update topic: %v", err)
-						topicID = 0
-						return
-					}
-				}, `
-				insert into cz_topics (feature)
-				values ($1)
-				on conflict (feature) do update set feature = $1
-				returning id
-				`, v)
-			}
-		}, `
-		select id from cz_topics
-		where feature like $1
-		`, v)
-
-		if topicID > 0 {
-			QueryRowExec(func(r pgx.Row) {
-				var res int32
-				if err := r.Scan(&res); err != nil {
-					log.Println(err)
-				}
-			}, `
-			insert into cz_cafes_topics (cafe_code, topic_id)
-			values ($1, $2)
-			on conflict (cafe_code, topic_id) do update set topic_id = $2
-			returning topic_id
-			`, c.ID, topicID)
-		}
-	}
-}
-
-func (c *Cafe) CreateOrUpdate() (string, []any) {
-	location := createOrUpdateLocation(c.Location)
-	if location > 0 {
-		log.Printf("%s: Location ID: %d", c.ID, location)
-	}
-
-	values := []any{c.ID, c.Title, location}
-	return `
-	insert into cz_cafes (code, title, location_id)
-	values ($1, $2, $3) on conflict (code) do update set title = $2, location_id = $3, updated_at = now()
-	returning code
-	`, values
+type LocationType struct {
+	Address   string
+	Longitude float64
+	Latitude  float64
 }
 
 func (c *Cafe) String() string {
@@ -198,4 +118,86 @@ func getLocation(ctx context.Context, cafe *cdp.Node) *LocationType {
 	}
 
 	return &LocationType{addrStr, lon, lat}
+}
+
+func (c *Cafe) Handle() {
+	location := handleLocation(c.Location)
+	if location > 0 {
+		log.Printf("%s: Location ID: %d", c.ID, location)
+	}
+
+	QueryRowExec(func(r pgx.Row) {
+		var code string
+		if err := r.Scan(&code); err != nil {
+			log.Printf("Failed to add/update entry %s: %v", c.ID, err)
+			return
+		}
+
+		c.handleTopics()
+		log.Printf("Entry %s added/updated", code)
+	}, `
+	insert into cz_cafes (code, title, location_id)
+	values ($1, $2, $3) on conflict (code) do update set title = $2, location_id = $3, updated_at = now()
+	returning code
+	`, c.ID, c.Title, location)
+}
+
+func handleLocation(l *LocationType) int32 {
+	var locationID int32
+	if l != nil {
+		QueryRowExec(func(r pgx.Row) {
+			if err := r.Scan(&locationID); err != nil {
+				log.Printf("Failed to create or update location: %v", err)
+				locationID = 0
+				return
+			}
+		}, `
+		insert into cz_cafe_locations (address_name, longitude, latitude)
+		values ($1, $2, $3)
+		on conflict (longitude, latitude) do update set address_name = $1, longitude = $2, latitude = $3
+		returning id
+		`, l.Address, l.Longitude, l.Latitude)
+	}
+
+	return locationID
+}
+
+func (c *Cafe) handleTopics() {
+	for _, v := range c.Topics {
+		var topicID int32
+		QueryRowExec(func(r pgx.Row) {
+			if err := r.Scan(&topicID); err != nil {
+				log.Printf("Feature \"%s\" not found", v)
+				QueryRowExec(func(r pgx.Row) {
+					if err := r.Scan(&topicID); err != nil {
+						log.Printf("Failed to create or update topic: %v", err)
+						topicID = 0
+						return
+					}
+				}, `
+				insert into cz_topics (feature)
+				values ($1)
+				on conflict (feature) do update set feature = $1
+				returning id
+				`, v)
+			}
+		}, `
+		select id from cz_topics
+		where feature like $1
+		`, v)
+
+		if topicID > 0 {
+			QueryRowExec(func(r pgx.Row) {
+				var res int32
+				if err := r.Scan(&res); err != nil {
+					log.Println(err)
+				}
+			}, `
+			insert into cz_cafes_topics (cafe_code, topic_id)
+			values ($1, $2)
+			on conflict (cafe_code, topic_id) do update set topic_id = $2
+			returning topic_id
+			`, c.ID, topicID)
+		}
+	}
 }

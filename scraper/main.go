@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ashyfun/coffeezone"
-	"github.com/jackc/pgx/v5"
 )
 
 const UsageHelp = `
@@ -35,18 +34,7 @@ func start(domain string) {
 			continue
 		}
 
-		sql, args := v.CreateOrUpdate()
-		coffeezone.QueryRowExec(func(r pgx.Row) {
-			var code string
-			if err := r.Scan(&code); err != nil {
-				log.Printf("Failed to add/update entry %s: %v", v.ID, err)
-				return
-			}
-
-			v.HandleTopics()
-
-			log.Printf("Entry %s added/updated", code)
-		}, sql, args...)
+		v.Handle()
 	}
 
 	log.Println("Done")

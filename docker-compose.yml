@@ -18,6 +18,8 @@ services:
     &scraper
     image: coffeezone:latest
     build: .
+    depends_on:
+      - db
     environment:
      - PG_CONN=postgresql://${POSTGRES_USER:-coffeezone_user}:${POSTGRES_PASSWORD:-coffeezone_user}@db/${POSTGRES_DB:-coffeezone_db}?sslmode=disable
     command: >
